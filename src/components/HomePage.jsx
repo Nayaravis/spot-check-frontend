@@ -6,14 +6,20 @@ const HomePage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchPlaces = async () => {
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(fetchPlaces);
+      }
+    }
+
+    const fetchPlaces = async (position) => {
       try {
-        const response = await fetch('http://localhost:5000/places');
+        const response = await fetch(`http://localhost:5000/places?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}`);
         if (!response.ok) {
           throw new Error('Failed to fetch places');
         }
         const data = await response.json();
-        setPlaces(data);
+        setPlaces(data.places);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -21,7 +27,7 @@ const HomePage = () => {
       }
     };
 
-    fetchPlaces();
+    getLocation();
   }, []);
 
   if (loading) {
@@ -59,11 +65,11 @@ const HomePage = () => {
           {places.map((place) => (
             <div key={place.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
               <div className="p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">{place.name}</h3>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">{place.displayName.text}</h3>
                 <p className="text-gray-600 mb-4">{place.description}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">
-                    {place.reviews?.length || 0} reviews
+                    {place.photos?.length || 0} reviews
                   </span>
                   <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200">
                     View Details
@@ -73,12 +79,6 @@ const HomePage = () => {
             </div>
           ))}
         </div>
-
-        {places.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No places found. Be the first to add one!</p>
-          </div>
-        )}
       </main>
     </div>
   );
