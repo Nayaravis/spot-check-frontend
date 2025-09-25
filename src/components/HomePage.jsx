@@ -5,21 +5,21 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // useEffect(() => {
-  //   const fetchPlaces = async () => {
-  //     try {
-  //       const response = await fetch('http://localhost:5000/places');
-  //       if (!response.ok) {
-  //         throw new Error('Failed to fetch places');
-  //       }
-  //       const data = await response.json();
-  //       setPlaces(data);
-  //     } catch (err) {
-  //       setError(err.message);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
+  useEffect(() => {
+    const fetchPlaces = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/places');
+        if (!response.ok) {
+          throw new Error('Failed to fetch places');
+        }
+        const data = await response.json();
+        setPlaces(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     fetchPlaces();
   }, []);
