@@ -74,7 +74,7 @@ const HomePage = () => {
           ))}
         </div>
 
-        {/* {places.length === 0 && (
+        {places.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">No places found. Be the first to add one!</p>
           </div>
@@ -82,6 +82,6 @@ const HomePage = () => {
       </main>
     </div>
   );
-}; */}
+};
 
 export default HomePage; 
