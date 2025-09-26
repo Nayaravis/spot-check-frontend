@@ -12,7 +12,9 @@ const PlaceDetails = () => {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     rating: 5,
-    comment: ''
+    title: '',
+    content: '',
+    visit_date: ''
   });
   const [submittingReview, setSubmittingReview] = useState(false);
 
@@ -68,7 +70,10 @@ const PlaceDetails = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(reviewForm),
+        body: JSON.stringify({
+          ...reviewForm,
+          user_id: 1
+        }),
       });
       
       if (!response.ok) {
@@ -77,7 +82,7 @@ const PlaceDetails = () => {
       
       // Refresh reviews after successful submission
       await fetchPlaceDetails();
-      setReviewForm({ rating: 5, comment: '' });
+      setReviewForm({ rating: 5, title: '', content: '', visit_date: '' });
       setShowReviewForm(false);
     } catch (err) {
       setError(err.message);
@@ -265,15 +270,39 @@ const PlaceDetails = () => {
                     </div>
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Comment
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        value={reviewForm.title}
+                        onChange={(e) => setReviewForm({...reviewForm, title: e.target.value})}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Review title..."
+                        required
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Content
                       </label>
                       <textarea
-                        value={reviewForm.comment}
-                        onChange={(e) => setReviewForm({...reviewForm, comment: e.target.value})}
+                        value={reviewForm.content}
+                        onChange={(e) => setReviewForm({...reviewForm, content: e.target.value})}
                         rows={4}
                         className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Share your experience..."
                         required
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Visit Date
+                      </label>
+                      <input
+                        type="date"
+                        value={reviewForm.visit_date}
+                        onChange={(e) => setReviewForm({...reviewForm, visit_date: e.target.value})}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                     <div className="flex space-x-3">
@@ -323,7 +352,15 @@ const PlaceDetails = () => {
                           {new Date(review.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-gray-700">{review.comment}</p>
+                      {review.title && (
+                        <h4 className="text-lg font-medium text-gray-800 mb-2">{review.title}</h4>
+                      )}
+                      <p className="text-gray-700">{review.content}</p>
+                      {review.visit_date && (
+                        <p className="text-sm text-gray-500 mt-2">
+                          Visited: {new Date(review.visit_date).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
                   ))
                 )}
