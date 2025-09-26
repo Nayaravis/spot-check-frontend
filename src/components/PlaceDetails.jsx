@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 const PlaceDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { user, token, API_BASE } = useAuth();
   const [place, setPlace] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,6 +19,8 @@ const PlaceDetails = () => {
     visit_date: ''
   });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     fetchPlaceDetails();
@@ -27,13 +29,33 @@ const PlaceDetails = () => {
   const fetchPlaceDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/places/${id}`);
+      const response = await fetch(`${API_BASE}/places/${id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch place details');
       }
       const data = await response.json();
       setPlace(data);
       setReviews(data.reviews || []);
+      // After loading place, check if it's in favorites for logged-in user
+      if (token && data?.id) {
+        try {
+          const favRes = await fetch(`${API_BASE}/favorites`, {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (favRes.ok) {
+            const favs = await favRes.json();
+            const found = Array.isArray(favs) && favs.some((p) => p.id === data.id);
+            setIsFavorite(!!found);
+          }
+        } catch (_) {
+          // ignore favorites check errors
+        }
+      } else {
+        setIsFavorite(false);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -43,7 +65,7 @@ const PlaceDetails = () => {
 
   const savePlaceToDatabase = async (placeData) => {
     try {
-      const response = await fetch('http://localhost:5000/places', {
+      const response = await fetch(`${API_BASE}/places`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -71,7 +93,7 @@ const PlaceDetails = () => {
         navigate('/login');
         return;
       }
-      const response = await fetch(`http://localhost:5000/places/${id}/add_review`, {
+      const response = await fetch(`${API_BASE}/places/${id}/add_review`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,6 +116,34 @@ const PlaceDetails = () => {
       setError(err.message);
     } finally {
       setSubmittingReview(false);
+    }
+  };
+
+  const handleAddFavorite = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    if (!place?.id || isFavorite) return;
+    try {
+      setFavoriteLoading(true);
+      const res = await fetch(`${API_BASE}/favorites`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ place_id: place.id }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Failed to add favorite');
+      }
+      setIsFavorite(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setFavoriteLoading(false);
     }
   };
 
@@ -237,6 +287,13 @@ const PlaceDetails = () => {
                     View on Maps
                   </a>
                 )}
+                <button
+                  onClick={handleAddFavorite}
+                  disabled={favoriteLoading || isFavorite}
+                  className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${isFavorite ? 'bg-green-100 text-green-700 border-green-200 cursor-default' : 'text-white bg-pink-600 hover:bg-pink-700 border-transparent focus:ring-pink-500'}`}
+                >
+                  {isFavorite ? 'Favorited' : favoriteLoading ? 'Adding...' : 'Add to Favorites'}
+                </button>
               </div>
             </div>
 

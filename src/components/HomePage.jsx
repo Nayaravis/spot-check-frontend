@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const { API_BASE } = useAuth();
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,7 +18,7 @@ const HomePage = () => {
 
     const fetchPlaces = async (position) => {
       try {
-        const response = await fetch(`http://localhost:5000/places?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}`);
+        const response = await fetch(`${API_BASE}/places?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}`);
         if (!response.ok) {
           throw new Error('Failed to fetch places');
         }
@@ -33,7 +35,7 @@ const HomePage = () => {
 
   const savePlaceToDatabase = async (placeData) => {
     try {
-      const response = await fetch('http://localhost:5000/places', {
+      const response = await fetch(`${API_BASE}/places`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

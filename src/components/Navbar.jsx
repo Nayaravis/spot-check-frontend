@@ -17,6 +17,12 @@ export default function Navbar() {
         <div className="flex items-center space-x-4">
           {user ? (
             <>
+              <Link
+                to="/favorites"
+                className="px-4 py-2 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100"
+              >
+                Favorites
+              </Link>
               <span className="text-gray-700 hidden sm:inline">Hi, {user.first_name || user.username || user.email}</span>
               <button
                 onClick={handleLogout}
