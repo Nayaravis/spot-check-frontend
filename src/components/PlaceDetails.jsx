@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DollarSign } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const PlaceDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, token } = useAuth();
   const [place, setPlace] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,14 +67,18 @@ const PlaceDetails = () => {
     setSubmittingReview(true);
     
     try {
+      if (!user) {
+        navigate('/login');
+        return;
+      }
       const response = await fetch(`http://localhost:5000/places/${id}/add_review`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           ...reviewForm,
-          user_id: 1
         }),
       });
       
@@ -240,12 +246,21 @@ const PlaceDetails = () => {
                 <h3 className="text-xl font-semibold text-gray-800">
                   Reviews ({reviews.length})
                 </h3>
-                <button
-                  onClick={() => setShowReviewForm(!showReviewForm)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Add Review
-                </button>
+                {user ? (
+                  <button
+                    onClick={() => setShowReviewForm(!showReviewForm)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Add Review
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Login to add review
+                  </button>
+                )}
               </div>
 
               {/* Review Form */}
