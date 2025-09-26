@@ -53,15 +53,24 @@ const HomePage = () => {
   };
 
   const handleCardClick = async (place) => {
+    // If this place already has a database ID from the backend, use it directly
+    // Support a few possible field names depending on your API shape
+    const existingDbId = place.db_id || place.database_id || place.backend_id || place.app_id || place.appId || place.id_db;
+
+    if (existingDbId) {
+      navigate(`/places/${existingDbId}`);
+      return;
+    }
+
     try {
-      // First save the place to database
+      // Save the place to your database to obtain a database ID
       const savedPlace = await savePlaceToDatabase(place);
-      // Then navigate to details page using the database ID
+      // Then navigate to details page using the database ID returned by the API
       navigate(`/places/${savedPlace.id}`);
     } catch (err) {
       console.error('Error saving place:', err);
-      // Still navigate even if save fails, but this shouldn't happen
-      navigate(`/places/${place.id}`);
+      // Do not navigate using Google Place ID to avoid mismatched routes
+      // Optionally, show a user-friendly error state here
     }
   };
 
@@ -83,13 +92,6 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">Spotcheck</h1>
-          <p className="text-gray-600 mt-2">Discover and review amazing places</p>
-        </div>
-      </header>
-
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-800 mb-2">All Places</h2>
@@ -179,3 +181,4 @@ const HomePage = () => {
 };
 
 export default HomePage; 
+
