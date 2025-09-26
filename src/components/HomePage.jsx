@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
+  const navigate = useNavigate();
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,6 +30,40 @@ const HomePage = () => {
     };
     getLocation();
   }, []);
+
+  const savePlaceToDatabase = async (placeData) => {
+    try {
+      const response = await fetch('http://localhost:5000/places', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(placeData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save place to database');
+      }
+      
+      return await response.json();
+    } catch (err) {
+      console.error('Error saving place:', err);
+      throw err;
+    }
+  };
+
+  const handleCardClick = async (place) => {
+    try {
+      // First save the place to database
+      const savedPlace = await savePlaceToDatabase(place);
+      // Then navigate to details page using the database ID
+      navigate(`/places/${savedPlace.id}`);
+    } catch (err) {
+      console.error('Error saving place:', err);
+      // Still navigate even if save fails, but this shouldn't happen
+      navigate(`/places/${place.id}`);
+    }
+  };
 
   if (loading) {
     return (
@@ -62,7 +98,11 @@ const HomePage = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {places.map((place) => (
-            <div key={place.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden">
+            <div 
+              key={place.id} 
+              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden cursor-pointer"
+              onClick={() => handleCardClick(place)}
+            >
               {place.photos && place.photos.length > 0 && (
                 <div className="h-48 overflow-hidden">
                   <img 
@@ -112,6 +152,7 @@ const HomePage = () => {
                         href={place.websiteUri}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
                         className="ml-4 text-sm text-blue-600 hover:text-blue-800"
                       >
                         Visit Website
@@ -122,6 +163,7 @@ const HomePage = () => {
                     href={place.googleMapsUri}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     View on Maps
