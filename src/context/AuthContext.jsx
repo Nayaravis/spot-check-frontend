@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const AuthContext = createContext(null);
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'https://spot-check-backend-6.onrender.com';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
