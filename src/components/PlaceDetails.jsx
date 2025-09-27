@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useFormik } from 'formik';
 
 const PlaceDetails = () => {
   const { id } = useParams();
@@ -12,15 +13,50 @@ const PlaceDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
-  const [reviewForm, setReviewForm] = useState({
-    rating: 5,
-    title: '',
-    content: '',
-    visit_date: ''
-  });
-  const [submittingReview, setSubmittingReview] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+
+  const reviewFormik = useFormik({
+    initialValues: {
+      rating: 5,
+      title: '',
+      content: '',
+      visit_date: '',
+    },
+    validate: (values) => {
+      const errors = {};
+      if (!values.title) errors.title = 'Title is required';
+      if (!values.content) errors.content = 'Content is required';
+      if (!values.rating || values.rating < 1 || values.rating > 5) errors.rating = 'Rating must be 1-5';
+      return errors;
+    },
+    onSubmit: async (values, { setSubmitting, resetForm }) => {
+      try {
+        if (!user) {
+          navigate('/login');
+          return;
+        }
+        const response = await fetch(`${API_BASE}/places/${id}/add_review`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(values),
+        });
+        if (!response.ok) {
+          throw new Error('Failed to add review');
+        }
+        await fetchPlaceDetails();
+        resetForm();
+        setShowReviewForm(false);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+  });
 
   useEffect(() => {
     fetchPlaceDetails();
@@ -84,40 +120,7 @@ const PlaceDetails = () => {
     }
   };
 
-  const handleAddReview = async (e) => {
-    e.preventDefault();
-    setSubmittingReview(true);
-    
-    try {
-      if (!user) {
-        navigate('/login');
-        return;
-      }
-      const response = await fetch(`${API_BASE}/places/${id}/add_review`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          ...reviewForm,
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to add review');
-      }
-      
-      // Refresh reviews after successful submission
-      await fetchPlaceDetails();
-      setReviewForm({ rating: 5, title: '', content: '', visit_date: '' });
-      setShowReviewForm(false);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
+  // handleAddReview replaced by Formik's submit handler
 
   const handleAddFavorite = async () => {
     if (!user) {
@@ -323,14 +326,16 @@ const PlaceDetails = () => {
               {/* Review Form */}
               {showReviewForm && (
                 <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <form onSubmit={handleAddReview}>
+                  <form onSubmit={reviewFormik.handleSubmit}>
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Rating
                       </label>
                       <select
-                        value={reviewForm.rating}
-                        onChange={(e) => setReviewForm({...reviewForm, rating: parseInt(e.target.value)})}
+                        name="rating"
+                        value={reviewFormik.values.rating}
+                        onChange={(e) => reviewFormik.setFieldValue('rating', parseInt(e.target.value))}
+                        onBlur={reviewFormik.handleBlur}
                         className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value={1}>1 Star</option>
@@ -339,6 +344,9 @@ const PlaceDetails = () => {
                         <option value={4}>4 Stars</option>
                         <option value={5}>5 Stars</option>
                       </select>
+                      {reviewFormik.touched.rating && reviewFormik.errors.rating && (
+                        <p className="mt-1 text-sm text-red-600">{reviewFormik.errors.rating}</p>
+                      )}
                     </div>
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -346,25 +354,35 @@ const PlaceDetails = () => {
                       </label>
                       <input
                         type="text"
-                        value={reviewForm.title}
-                        onChange={(e) => setReviewForm({...reviewForm, title: e.target.value})}
+                        name="title"
+                        value={reviewFormik.values.title}
+                        onChange={reviewFormik.handleChange}
+                        onBlur={reviewFormik.handleBlur}
                         className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Review title..."
                         required
                       />
+                      {reviewFormik.touched.title && reviewFormik.errors.title && (
+                        <p className="mt-1 text-sm text-red-600">{reviewFormik.errors.title}</p>
+                      )}
                     </div>
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Content
                       </label>
                       <textarea
-                        value={reviewForm.content}
-                        onChange={(e) => setReviewForm({...reviewForm, content: e.target.value})}
+                        name="content"
+                        value={reviewFormik.values.content}
+                        onChange={reviewFormik.handleChange}
+                        onBlur={reviewFormik.handleBlur}
                         rows={4}
                         className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Share your experience..."
                         required
                       />
+                      {reviewFormik.touched.content && reviewFormik.errors.content && (
+                        <p className="mt-1 text-sm text-red-600">{reviewFormik.errors.content}</p>
+                      )}
                     </div>
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -372,18 +390,20 @@ const PlaceDetails = () => {
                       </label>
                       <input
                         type="date"
-                        value={reviewForm.visit_date}
-                        onChange={(e) => setReviewForm({...reviewForm, visit_date: e.target.value})}
+                        name="visit_date"
+                        value={reviewFormik.values.visit_date}
+                        onChange={reviewFormik.handleChange}
+                        onBlur={reviewFormik.handleBlur}
                         className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                     <div className="flex space-x-3">
                       <button
                         type="submit"
-                        disabled={submittingReview}
+                        disabled={reviewFormik.isSubmitting}
                         className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                       >
-                        {submittingReview ? 'Submitting...' : 'Submit Review'}
+                        {reviewFormik.isSubmitting ? 'Submitting...' : 'Submit Review'}
                       </button>
                       <button
                         type="button"
