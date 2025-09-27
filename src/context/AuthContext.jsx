@@ -30,6 +30,39 @@ export function AuthProvider({ children }) {
     setUser(next.user || null);
   };
 
+  // Helper function to get headers with authorization
+  const getHeaders = (additionalHeaders = {}) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...additionalHeaders
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    return headers;
+  };
+
+  // Helper function for authenticated API calls
+  const authenticatedFetch = async (url, options = {}) => {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...getHeaders(),
+        ...(options.headers || {})
+      }
+    });
+    
+    // If unauthorized, clear auth data
+    if (response.status === 401) {
+      logout();
+      throw new Error('Authentication required. Please log in again.');
+    }
+    
+    return response;
+  };
+
   const login = async (email, password) => {
     const res = await fetch(`${API_BASE}/login`, {
       method: 'POST',
@@ -56,7 +89,12 @@ export function AuthProvider({ children }) {
       const errText = await res.text();
       throw new Error(errText || 'Registration failed');
     }
-    return await res.json();
+    const data = await res.json();
+    // If registration returns token and user, save them
+    if (data.token && data.user) {
+      saveAuth({ token: data.token, user: data.user });
+    }
+    return data;
   };
 
   const logout = () => {
@@ -65,7 +103,17 @@ export function AuthProvider({ children }) {
     setToken(null);
   };
 
-  const value = useMemo(() => ({ user, token, loading, login, logout, register, API_BASE }), [user, token, loading]);
+  const value = useMemo(() => ({ 
+    user, 
+    token, 
+    loading, 
+    login, 
+    logout, 
+    register, 
+    API_BASE,
+    getHeaders,
+    authenticatedFetch
+  }), [user, token, loading]);
 
   return (
     <AuthContext.Provider value={value}>
